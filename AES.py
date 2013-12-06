@@ -158,7 +158,9 @@ def state_to_text(state):
     text = ''
     for column in state:
         for byte in column:
-            text = text + hex(byte).decode("hex")
+            lchar = chr(byte >> 4)
+            rchar = chr(byte & 16)
+            text = text + lchar + rchar
     return text
 
 
@@ -176,11 +178,11 @@ def KeyExpansion(key,nK = 4):
     w = text_to_state(key)
     i = nK
 
-    while len(w) <= 11:
+    while len(w) <= 44:
         w.append([0, 0, 0, 0])
 
     temp = w[i-1]
-    while i < (nR + 1):
+    while i < (nR + 1) * nB:
         if i % nK == 0:
             temp = subWord(rot(temp)) #Rotate bytes, then perform subByte, then xor with Rcon (but only the first byte)
             temp[0] = temp[0] ^ Rcon[i/nK]
@@ -203,7 +205,8 @@ def encrypt(text,key,nB = 4, nR = 10):
         subByte(state)
         shift_rows(state)
         mix_columns(state)
-        addRoundKey(state, w[i*nB: (i + 1)*nB])
+        addRoundKey(state, w[i*nB:(i + 1)*nB])
+
 
     subByte(state)
     shift_rows(state)
@@ -220,7 +223,7 @@ def decrypt(text,key,nB = 4, nR = 10):
 
     w = KeyExpansion(key)
 
-    addRoundKey(state, w[nR * nB: (nR + 1)])
+    addRoundKey(state, w[nR*nB: (nR + 1)*nB])
 
     for i in range(1,10,-1):
         inv_shift_rows(state)
@@ -230,7 +233,7 @@ def decrypt(text,key,nB = 4, nR = 10):
 
     inv_shift_rows(state)
     inv_subByte(state)
-    addRoundKey(state,w[0: nB])
+    addRoundKey(state,w[0:nB])
 
     return state_to_text(state)
 
