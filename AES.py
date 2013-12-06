@@ -92,12 +92,17 @@ def inv_mix_columns(s):
 
 def addRoundKey(s,k):
     #Described in standard at 5.1.4, XOR each column with word from round key
+    print "S: ", s
+    print "\nK: ", k
     for i in range(4):
         for j in range(4):
             s[i][j] ^= k[i][j]
 
 def subByte(s):
-    #Input is the state, substitutes using Sbox
+    '''
+    Input is the state, substitutes using Sbox
+    Return: state array wit Sbox subs
+    '''
     for i in range(4):
         for j in range(4):
             s[i][j] = Sbox[s[i][j]]
@@ -111,6 +116,11 @@ def inv_subByte(s):
 def rot(w):
     #Rotates a word
     w[0],w[1],w[2],w[3] = w[1],w[2],w[3],w[0]
+    return w
+
+def subWord(w):
+    for i in range(4):
+        w[i] = Sbox[w[i]]
     return w
 
 
@@ -163,14 +173,17 @@ def KeyExpansion(key,nK = 4):
     '''
     nB = 4  #For 128-Bit nB = 4
     nR = 10 #For 128-Bit nR = 10
-    w = text_to_state(key) 
+    w = text_to_state(key)
     i = nK
 
+    while len(w) <= 11:
+        w.append([0, 0, 0, 0])
+
     temp = w[i-1]
-    while i < nB * (nR + 1):
+    while i < (nR + 1):
         if i % nK == 0:
-            temp = subByte(rot(temp)) #Rotate bytes, then perform subByte, then xor with Rcon (but only the first byte)
-            temp[0] = temp[0] ^ Rcon(i/nK)
+            temp = subWord(rot(temp)) #Rotate bytes, then perform subByte, then xor with Rcon (but only the first byte)
+            temp[0] = temp[0] ^ Rcon[i/nK]
         for x in range(4):
             w[i][x] = w[i-nK][x] ^ temp[x]
         i += 1
@@ -184,18 +197,17 @@ def encrypt(text,key,nB = 4, nR = 10):
     state = text_to_state(text)
 
     w = KeyExpansion(key)
-
-    addRoundKey(state, w[0, nB - 1])
+    addRoundKey(state, w[0: nB])
 
     for i in range(9):
         subByte(state)
         shift_rows(state)
         mix_columns(state)
-        addRoundKey(state, w[i*nB, (i + 1)*nB-1])
+        addRoundKey(state, w[i*nB: (i + 1)*nB])
 
     subByte(state)
     shift_rows(state)
-    addRoundKey(state,w[nR*nB, (nR+1)*nB-1])
+    addRoundKey(state,w[nR*nB: (nR+1)*nB])
 
     return state_to_text(state)
 
@@ -208,17 +220,17 @@ def decrypt(text,key,nB = 4, nR = 10):
 
     w = KeyExpansion(key)
 
-    addRoundKey(state, w[nR * nB, (nR + 1)*nB-1])
+    addRoundKey(state, w[nR * nB: (nR + 1)])
 
     for i in range(1,10,-1):
         inv_shift_rows(state)
         inv_subByte(state)
-        addRoundKey(state, w[i*nB, (i+1)*nB-1])
+        addRoundKey(state, w[i*nB: (i+1)*nB])
         inv_mix_columns(state)
 
     inv_shift_rows(state)
     inv_subByte(state)
-    addRoundKey(state,w[0, nB-1])
+    addRoundKey(state,w[0: nB])
 
     return state_to_text(state)
 
@@ -227,7 +239,11 @@ def decrypt(text,key,nB = 4, nR = 10):
 #TESTING
 plaintext = '00112233445566778899aabbccddeeff'.decode("hex")
 KEY = '000102030405060708090a0b0c0d0e0f'.decode("hex")
-
+cipher = encrypt(plaintext, KEY)
+unencrypt = decrypt(cipher, KEY)
+print "Cipher is: ", cipher
+print "\n Decrypted Cipher is: ", unencrypt
+print "\n"
 #key schedule = '000102030405060708090a0b0c0d0e0f'
 #state at start: '00102030405060708090a0b0c0d0e0f0'
 #after sub_bytes = '63cab7040953d051cd60e0e7ba70e18c'
