@@ -92,8 +92,6 @@ def inv_mix_columns(s):
 
 def addRoundKey(s,k):
     #Described in standard at 5.1.4, XOR each column with word from round key
-    print "S: ", s
-    print "\nK: ", k
     for i in range(4):
         for j in range(4):
             s[i][j] ^= k[i][j]
@@ -140,7 +138,7 @@ def text_to_state(text):
     Where each a is 8 bits, and each column is a 4 byte word
     '''
     matrix = [ ]
-    text = int(text.encode("hex"),16)
+    text = int(text,16)
     for i in range(16):
         byte = text >> (8 * (15 - i)) & 255 #Shifts the text over to the right in mulitples of 8 bits
                                             #and ANDs with a bit-string of 8 1s(255) to return only the 8
@@ -158,11 +156,18 @@ def state_to_text(state):
     text = ''
     for column in state:
         for byte in column:
-            lchar = chr(byte >> 4)
-            rchar = chr(byte & 16)
-            text = text + lchar + rchar
+            val = "%x" % byte
+            #lchar = chr(byte >> 4)
+            #rchar = chr(byte & 16)
+            text = text + val
     return text
 
+def print_word(w):
+    text = ''
+    for each in w:
+        text = text + "%x" % each
+    print "Current Word is: ",text
+    return True
 
 def KeyExpansion(key,nK = 4):
     '''
@@ -181,14 +186,23 @@ def KeyExpansion(key,nK = 4):
     while len(w) <= 44:
         w.append([0, 0, 0, 0])
 
-    temp = w[i-1]
+
     while i < (nR + 1) * nB:
+        temp = w[i-1]
         if i % nK == 0:
             temp = subWord(rot(temp)) #Rotate bytes, then perform subByte, then xor with Rcon (but only the first byte)
             temp[0] = temp[0] ^ Rcon[i/nK]
         for x in range(4):
             w[i][x] = w[i-nK][x] ^ temp[x]
+        print "i = %d" % i
+        print "w[i-nK]:"
+        print_word(w[i-nK])
+        print "w[i]:"
+        print_word(w[i])
+        print "Key Expansion at this round is: ", state_to_text(w)
         i += 1
+
+    print "Final Key Expansion: ", state_to_text(w)
     return w
 
 def encrypt(text,key,nB = 4, nR = 10):
@@ -240,13 +254,18 @@ def decrypt(text,key,nB = 4, nR = 10):
 
     
 #TESTING
-plaintext = '00112233445566778899aabbccddeeff'.decode("hex")
-KEY = '000102030405060708090a0b0c0d0e0f'.decode("hex")
-cipher = encrypt(plaintext, KEY)
-unencrypt = decrypt(cipher, KEY)
-print "Cipher is: ", cipher
-print "\n Decrypted Cipher is: ", unencrypt
-print "\n"
+plaintext = '00112233445566778899aabbccddeeff'
+KEY = '000102030405060708090a0b0c0d0e0f'
+
+KeyExp = "2b7e151628aed2a6abf7158809cf4f3c"
+result = encrypt(plaintext, KeyExp)
+
+
+#cipher = encrypt(plaintext, KEY)
+#unencrypt = decrypt(cipher, KEY)
+#print "\nCipher is: ", cipher
+#print "Decrypted Cipher is: ", unencrypt
+#print "\n"
 #key schedule = '000102030405060708090a0b0c0d0e0f'
 #state at start: '00102030405060708090a0b0c0d0e0f0'
 #after sub_bytes = '63cab7040953d051cd60e0e7ba70e18c'
