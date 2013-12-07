@@ -95,6 +95,7 @@ def addRoundKey(s,k):
     for i in range(4):
         for j in range(4):
             s[i][j] ^= k[i][j]
+    return s 
 
 def subByte(s):
     '''
@@ -163,11 +164,31 @@ def state_to_text(state):
     return text
 
 def print_word(w):
+    '''
+    For printing for debugging purposes
+    '''
     text = ''
     for each in w:
         text = text + "%x" % each
     print "Current Word is: ",text
     return True
+
+def print_matrix(s):
+    '''
+    For printing for debugging purposes. Prints matrix in hex
+    '''
+    new = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+    for i in range(4):
+        for j in range(4):
+            char = "%x" % s[i][j]
+            new[i][j] = char
+    print "Current State: "
+    for x in range(4):
+        print new[x]
+        print "\n"
+
+    return True
+
 
 def KeyExpansion(key,nK = 4):
     '''
@@ -183,26 +204,20 @@ def KeyExpansion(key,nK = 4):
     w = text_to_state(key)
     i = nK
 
-    while len(w) <= 44:
+    while len(w) < 44:
         w.append([0, 0, 0, 0])
 
 
     while i < (nR + 1) * nB:
-        temp = w[i-1]
+        temp = w[i-1][:] #That slicing operation is to create a new list. Embarassed still....
         if i % nK == 0:
             temp = subWord(rot(temp)) #Rotate bytes, then perform subByte, then xor with Rcon (but only the first byte)
             temp[0] = temp[0] ^ Rcon[i/nK]
         for x in range(4):
             w[i][x] = w[i-nK][x] ^ temp[x]
-        print "i = %d" % i
-        print "w[i-nK]:"
-        print_word(w[i-nK])
-        print "w[i]:"
-        print_word(w[i])
-        print "Key Expansion at this round is: ", state_to_text(w)
         i += 1
 
-    print "Final Key Expansion: ", state_to_text(w)
+    #print "Final Key Expansion: ", state_to_text(w)
     return w
 
 def encrypt(text,key,nB = 4, nR = 10):
@@ -211,15 +226,20 @@ def encrypt(text,key,nB = 4, nR = 10):
     and encrypts
     '''
     state = text_to_state(text)
-
+    print "Initial:"
+    print_matrix(state)
     w = KeyExpansion(key)
-    addRoundKey(state, w[0: nB])
+    state = addRoundKey(state, w[0: nB])
+    print "After first addRoundKey:"
+    print_matrix(state)
 
     for i in range(9):
         subByte(state)
         shift_rows(state)
         mix_columns(state)
-        addRoundKey(state, w[i*nB:(i + 1)*nB])
+        state = addRoundKey(state, w[i*nB:(i + 1)*nB])
+        print "At i = %d" % i
+        print_matrix(state)
 
 
     subByte(state)
@@ -257,9 +277,14 @@ def decrypt(text,key,nB = 4, nR = 10):
 plaintext = '00112233445566778899aabbccddeeff'
 KEY = '000102030405060708090a0b0c0d0e0f'
 
-KeyExp = "2b7e151628aed2a6abf7158809cf4f3c"
-result = encrypt(plaintext, KeyExp)
+#---       Key Expansion Test String   ---
+#KeyExp = "2b7e151628aed2a6abf7158809cf4f3c"
+#result = encrypt(plaintext, KeyExp)
 
+#---       Appendix B - Cipher Example ---
+Input = '3243f6a8885a308d313198a2e0370734'
+BKey = '2b7e151628aed2a6abf7158809cf4f3c'
+output = encrypt(Input,BKey)
 
 #cipher = encrypt(plaintext, KEY)
 #unencrypt = decrypt(cipher, KEY)
