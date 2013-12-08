@@ -51,12 +51,14 @@ Rcon = (
 def shift_rows(s):
     s[0][1], s[1][1], s[2][1], s[3][1] = s[1][1], s[2][1], s[3][1], s[0][1]
     s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
-    s[0][3], s[1][3], s[2][3], s[3][3] = s[3][3], s[0][3], s[1][3], s[2][3] 
+    s[0][3], s[1][3], s[2][3], s[3][3] = s[3][3], s[0][3], s[1][3], s[2][3]
+    return s
 
 def inv_shift_rows(s):
     s[0][1], s[1][1], s[2][1], s[3][1] = s[3][1], s[0][1], s[1][1], s[2][1]
     s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
     s[0][3], s[1][3], s[2][3], s[3][3] = s[1][3], s[2][3], s[3][3], s[0][3]
+    return s
 
 def xtime(a,n=1):
     '''
@@ -72,7 +74,7 @@ def xtime(a,n=1):
 
 def mix_columns(s):
     #NIST FIPS-197 5.1.3
-    x = s
+    x = s[:]
     for i in range(4):
         x[i][0] = xtime(s[i][0]) ^ xtime(s[i][1]) ^ s[i][2] ^ s[i][3]
         x[i][1] = s[i][0] ^ xtime(s[i][1]) ^ xtime(s[i][2]) ^ s[i][3]
@@ -82,7 +84,7 @@ def mix_columns(s):
 
 def inv_mix_columns(s):
     #NIST FIPS-197 5.3.3
-    x = s
+    x = s[:]
     for i in range(4):
         x[i][0] = xtime(s[i][0],7) ^ xtime(s[i][1],5) ^ xtime(s[i][2],6) ^ xtime(s[i][3],4)
         x[i][1] = xtime(s[i][0],4) ^ xtime(s[i][1],7) ^ xtime(s[i][2],5) ^ xtime(s[i][3],6)
@@ -105,13 +107,13 @@ def subByte(s):
     for i in range(4):
         for j in range(4):
             s[i][j] = Sbox[s[i][j]]
-
+    return s
 def inv_subByte(s):
     #Reverse of subByte
     for i in range(4):
         for j in range(4):
             s[i][j] = InvSbox[s[i][j]]
-
+    return s
 def rot(w):
     #Rotates a word
     w[0],w[1],w[2],w[3] = w[1],w[2],w[3],w[0]
@@ -183,8 +185,9 @@ def print_matrix(s):
             char = "%x" % s[i][j]
             new[i][j] = char
     print "Current State: "
-    for x in range(4):
-        print new[x]
+    for y in range(4):
+        for x in range(4):
+            print new[x][y],
         print "\n"
 
     return True
@@ -234,11 +237,18 @@ def encrypt(text,key,nB = 4, nR = 10):
     print_matrix(state)
 
     for i in range(9):
-        subByte(state)
-        shift_rows(state)
-        mix_columns(state)
-        state = addRoundKey(state, w[i*nB:(i + 1)*nB])
         print "At i = %d" % i
+        state = subByte(state)
+        print "After subByte:"
+        print_matrix(state)
+        state = shift_rows(state)
+        print "After shift_rows:"
+        print_matrix(state)
+        state = mix_columns(state)
+        print "After mix_columns:"
+        print_matrix(state)
+        state = addRoundKey(state, w[i*nB:(i + 1)*nB])
+        print "End of round %d:" % i
         print_matrix(state)
 
 
