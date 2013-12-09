@@ -66,11 +66,13 @@ def xtime(a,n=1):
     Equal to multiplying by one 'x', so perform xtime multiple times to get values other than {02}
     such as {04}
     '''
-    for i in range(n):
-        a = (a << 1) % 256
-        if a < 127:
-            a = a ^ 27
-    return a
+    if a & 0x80:   # 0x80 is b10000000, so this will be all 0s if highest bit isn't 1
+        a = a << 1
+        a ^= 0x1B
+    else:
+        a = a << 1
+    return a & 0xFF
+
 
 def mix_columns(s):
     '''
@@ -79,26 +81,31 @@ def mix_columns(s):
     for this operation. {03} is using xtime + 1, where addition is the same thing
     as xor in the finite field.
     '''
-    x = list(s)
     for i in range(4):
-        x[i][0] = xtime(s[i][0]) ^ xtime(s[i][1]) ^ s[i][2] ^ s[i][3]  ^ s[i][1]
-        x[i][1] = s[i][0] ^ xtime(s[i][1]) ^ xtime(s[i][2]) ^ s[i][3] ^ s[i][2]
-        x[i][2] = s[i][0] ^ s[i][1] ^ xtime(s[i][2]) ^ xtime(s[i][3]) ^ s[i][3]
-        x[i][3] = xtime(s[i][0]) ^ s[i][1] ^ s[i][2] ^ xtime(s[i][3]) ^ s[i][0]
-    return x
+        s[i] = mix_a_column(s[i])
+    return s
+
+def mix_a_column(s):
+    XOR = s[0] ^ s[1] ^ s[2] ^ s[3]
+    t = s[0]
+    s[0] ^= xtime(s[0] ^ s[1]) ^ XOR
+    s[1] ^= xtime(s[1] ^ s[2]) ^ XOR
+    s[2] ^= xtime(s[2] ^ s[3]) ^ XOR
+    s[3] ^= xtime(t ^ s[3]) ^ XOR
+    return s
 
 def inv_mix_columns(s):
     '''
     NIST FIPS-197 5.3.3
     THIS FUNCTION NEEDS TO BE REDONE. XTIME PROCEDURE INCORRECT AND MISSING THE +1
     '''
-    x = list(s)
     for i in range(4):
-        x[i][0] = xtime(s[i][0],7) ^ xtime(s[i][1],5) ^ xtime(s[i][2],6) ^ xtime(s[i][3],4)
-        x[i][1] = xtime(s[i][0],4) ^ xtime(s[i][1],7) ^ xtime(s[i][2],5) ^ xtime(s[i][3],6)
-        x[i][2] = xtime(s[i][0],6) ^ xtime(s[i][1],4) ^ xtime(s[i][2],7) ^ xtime(s[i][3],5)
-        x[i][3] = xtime(s[i][0],5) ^ xtime(s[i][1],6) ^ xtime(s[i][2],4) ^ xtime(s[i][3],7)
-    return x
+        TMP = s[i][0] ^ s[i][1] ^ s[i][2] ^ s[i][3]
+        s[i][0] ^= xtime(s[i][0],7) ^ xtime(s[i][1],5) ^ xtime(s[i][2],6) ^ xtime(s[i][3],4)
+        s[i][1] ^= xtime(s[i][0],4) ^ xtime(s[i][1],7) ^ xtime(s[i][2],5) ^ xtime(s[i][3],6)
+        s[i][2] ^= xtime(s[i][0],6) ^ xtime(s[i][1],4) ^ xtime(s[i][2],7) ^ xtime(s[i][3],5)
+        s[i][3] ^= xtime(s[i][0],5) ^ xtime(s[i][1],6) ^ xtime(s[i][2],4) ^ xtime(s[i][3],7)
+    return s
 
 def addRoundKey(s,k):
     #Described in standard at 5.1.4, XOR each column with word from round key
@@ -183,6 +190,7 @@ def print_word(w):
     print "Current Word is: ",text
     return True
 
+
 def print_matrix(s):
     '''
     For printing for debugging purposes. Prints matrix in hex
@@ -244,7 +252,7 @@ def encrypt(text,key,nB = 4, nR = 10):
     print "After first addRoundKey:"
     print_matrix(state)
 
-    for i in range(9):
+    for i in range(1,10):
         print "At i = %d" % i
         state = subByte(state)
         print "After subByte:"
@@ -255,14 +263,16 @@ def encrypt(text,key,nB = 4, nR = 10):
         state = mix_columns(state)
         print "After mix_columns:"
         print_matrix(state)
-        state = addRoundKey(state, w[i*nB:(i + 1)*nB])
+        state = addRoundKey(state, w[i*nB:(i+1)*nB])
         print "End of round %d:" % i
         print_matrix(state)
 
 
-    subByte(state)
-    shift_rows(state)
-    addRoundKey(state,w[nR*nB: (nR+1)*nB])
+    state = subByte(state)
+    state = shift_rows(state)
+    state = addRoundKey(state,w[nR*nB: (nR+1)*nB])
+    print "Final: "
+    print_matrix(state)
 
     return state_to_text(state)
 
@@ -296,8 +306,8 @@ plaintext = '00112233445566778899aabbccddeeff'
 KEY = '000102030405060708090a0b0c0d0e0f'
 
 #---       Key Expansion Test String   ---
-#KeyExp = "2b7e151628aed2a6abf7158809cf4f3c"
-#result = encrypt(plaintext, KeyExp)
+KeyExp = "2b7e151628aed2a6abf7158809cf4f3c"
+result = encrypt(plaintext, KeyExp)
 
 #---       Appendix B - Cipher Example ---
 Input = '3243f6a8885a308d313198a2e0370734'
@@ -314,5 +324,3 @@ output = encrypt(Input,BKey)
 #after sub_bytes = '63cab7040953d051cd60e0e7ba70e18c'
 #after shift rows = '6353e08c0960e104cd70b751bacad0e7'
 #after mix columns = '5f72641557f5bc92f7be3b291db9f91a'
-
-
