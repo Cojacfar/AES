@@ -76,10 +76,10 @@ def mix_columns(s):
     #NIST FIPS-197 5.1.3
     x = s[:]
     for i in range(4):
-        x[i][0] = xtime(s[i][0]) ^ xtime(s[i][1]) ^ s[i][2] ^ s[i][3]
-        x[i][1] = s[i][0] ^ xtime(s[i][1]) ^ xtime(s[i][2]) ^ s[i][3]
-        x[i][2] = s[i][0] ^ s[i][1] ^ xtime(s[i][2]) ^ xtime(s[i][3])
-        x[i][3] = xtime(s[i][0]) ^ s[i][1] ^ s[i][2] ^ xtime(s[i][3])
+        x[i][0] = xtime(s[i][0]) ^ xtime(s[i][1]) ^ s[i][2] ^ s[i][3]  ^ s[i][1]
+        x[i][1] = s[i][0] ^ xtime(s[i][1]) ^ xtime(s[i][2]) ^ s[i][3] ^ s[i][2]
+        x[i][2] = s[i][0] ^ s[i][1] ^ xtime(s[i][2]) ^ xtime(s[i][3]) ^ s[i][3]
+        x[i][3] = xtime(s[i][0]) ^ s[i][1] ^ s[i][2] ^ xtime(s[i][3]) ^ s[i][0]
     return x
 
 def inv_mix_columns(s):
