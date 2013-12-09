@@ -79,7 +79,7 @@ def mix_columns(s):
     for this operation. {03} is using xtime + 1, where addition is the same thing
     as xor in the finite field.
     '''
-    x = s[:]
+    x = list(s)
     for i in range(4):
         x[i][0] = xtime(s[i][0]) ^ xtime(s[i][1]) ^ s[i][2] ^ s[i][3]  ^ s[i][1]
         x[i][1] = s[i][0] ^ xtime(s[i][1]) ^ xtime(s[i][2]) ^ s[i][3] ^ s[i][2]
@@ -92,7 +92,7 @@ def inv_mix_columns(s):
     NIST FIPS-197 5.3.3
     THIS FUNCTION NEEDS TO BE REDONE. XTIME PROCEDURE INCORRECT AND MISSING THE +1
     '''
-    x = s[:]
+    x = list(s)
     for i in range(4):
         x[i][0] = xtime(s[i][0],7) ^ xtime(s[i][1],5) ^ xtime(s[i][2],6) ^ xtime(s[i][3],4)
         x[i][1] = xtime(s[i][0],4) ^ xtime(s[i][1],7) ^ xtime(s[i][2],5) ^ xtime(s[i][3],6)
