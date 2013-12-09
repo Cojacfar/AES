@@ -73,7 +73,12 @@ def xtime(a,n=1):
     return a
 
 def mix_columns(s):
-    #NIST FIPS-197 5.1.3
+    '''
+    NIST FIPS-197 5.1.3 defines this function. Input the state, outputs the updated
+    state. Multiplying by {02} is equal to multiplying by x, so xtime is invoked
+    for this operation. {03} is using xtime + 1, where addition is the same thing
+    as xor in the finite field.
+    '''
     x = s[:]
     for i in range(4):
         x[i][0] = xtime(s[i][0]) ^ xtime(s[i][1]) ^ s[i][2] ^ s[i][3]  ^ s[i][1]
@@ -83,7 +88,10 @@ def mix_columns(s):
     return x
 
 def inv_mix_columns(s):
-    #NIST FIPS-197 5.3.3
+    '''
+    NIST FIPS-197 5.3.3
+    THIS FUNCTION NEEDS TO BE REDONE. XTIME PROCEDURE INCORRECT AND MISSING THE +1
+    '''
     x = s[:]
     for i in range(4):
         x[i][0] = xtime(s[i][0],7) ^ xtime(s[i][1],5) ^ xtime(s[i][2],6) ^ xtime(s[i][3],4)
@@ -132,7 +140,7 @@ def text_to_state(text):
 
     Input is [a0,a1,a2,a3...]
 
-    State looks like:
+    State Matrix looks like:
     [ a[0,0] a[0,1] a[0,2] a[0,3] 
       a[1,0] a[1,1] a[1,2] a[1,3]
       a[2,0] a[2,1] a[2,2] a[2,3]
@@ -306,4 +314,5 @@ output = encrypt(Input,BKey)
 #after sub_bytes = '63cab7040953d051cd60e0e7ba70e18c'
 #after shift rows = '6353e08c0960e104cd70b751bacad0e7'
 #after mix columns = '5f72641557f5bc92f7be3b291db9f91a'
+
 
