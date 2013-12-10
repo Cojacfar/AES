@@ -66,11 +66,12 @@ def xtime(a,n=1):
     Equal to multiplying by one 'x', so perform xtime multiple times to get values other than {02}
     such as {04}
     '''
-    if a & 0x80:   # 0x80 is b10000000, so this will be all 0s if highest bit isn't 1
-        a = a << 1
-        a ^= 0x1B
-    else:
-        a = a << 1
+    for i in range(n):
+        if a & 0x80:   # 0x80 is b10000000, so this will be all 0s if highest bit isn't 1
+            a = a << 1
+            a ^= 0x1B
+        else:
+            a = a << 1
     return a & 0xFF
 
 
@@ -95,17 +96,22 @@ def mix_a_column(s):
     return s
 
 def inv_mix_columns(s):
-    '''
-    NIST FIPS-197 5.3.3
-    THIS FUNCTION NEEDS TO BE REDONE. XTIME PROCEDURE INCORRECT AND MISSING THE +1
-    '''
     for i in range(4):
-        TMP = s[i][0] ^ s[i][1] ^ s[i][2] ^ s[i][3]
-        s[i][0] ^= xtime(s[i][0],7) ^ xtime(s[i][1],5) ^ xtime(s[i][2],6) ^ xtime(s[i][3],4)
-        s[i][1] ^= xtime(s[i][0],4) ^ xtime(s[i][1],7) ^ xtime(s[i][2],5) ^ xtime(s[i][3],6)
-        s[i][2] ^= xtime(s[i][0],6) ^ xtime(s[i][1],4) ^ xtime(s[i][2],7) ^ xtime(s[i][3],5)
-        s[i][3] ^= xtime(s[i][0],5) ^ xtime(s[i][1],6) ^ xtime(s[i][2],4) ^ xtime(s[i][3],7)
+        s[i] = inv_mix_a_column(s[i])
     return s
+
+
+def inv_mix_a_column(s):
+    '''
+    NIST FIPS-197 5.3.3  
+    '''
+    x = list(s)
+    XOR = xtime(s[0],3) ^ xtime(s[1],3) ^ xtime(s[2],3) ^ xtime(s[3],3)
+    x[0] = xtime(s[0],2) ^ xtime(s[0]) ^ xtime(s[1]) ^ s[1] ^ xtime(s[2],2) ^ s[2] ^ s[3] ^ XOR
+    x[1] = s[0] ^ xtime(s[1],2) ^ xtime(s[1]) ^ xtime(s[2]) ^ s[2] ^ xtime(s[3],2) ^ s[3] ^ XOR
+    x[2] = s[1] ^ xtime(s[2],2) ^ xtime(s[2]) ^ xtime(s[3]) ^ s[3] ^ xtime(s[0],2) ^ s[0] ^ XOR
+    x[3] = s[2] ^ xtime(s[3],2) ^ xtime(s[3]) ^ xtime(s[0]) ^ s[0] ^ xtime(s[1],2) ^ s[1] ^ XOR
+    return x
 
 def addRoundKey(s,k):
     #Described in standard at 5.1.4, XOR each column with word from round key
@@ -175,8 +181,6 @@ def state_to_text(state):
     for column in state:
         for byte in column:
             val = "%x" % byte
-            #lchar = chr(byte >> 4)
-            #rchar = chr(byte & 16)
             text = text + val
     return text
 
@@ -245,34 +249,18 @@ def encrypt(text,key,nB = 4, nR = 10):
     and encrypts
     '''
     state = text_to_state(text)
-    print "Initial:"
-    print_matrix(state)
     w = KeyExpansion(key)
     state = addRoundKey(state, w[0: nB])
-    print "After first addRoundKey:"
-    print_matrix(state)
 
     for i in range(1,10):
-        print "At i = %d" % i
         state = subByte(state)
-        print "After subByte:"
-        print_matrix(state)
         state = shift_rows(state)
-        print "After shift_rows:"
-        print_matrix(state)
         state = mix_columns(state)
-        print "After mix_columns:"
-        print_matrix(state)
         state = addRoundKey(state, w[i*nB:(i+1)*nB])
-        print "End of round %d:" % i
-        print_matrix(state)
-
 
     state = subByte(state)
     state = shift_rows(state)
     state = addRoundKey(state,w[nR*nB: (nR+1)*nB])
-    print "Final: "
-    print_matrix(state)
 
     return state_to_text(state)
 
@@ -282,20 +270,30 @@ def decrypt(text,key,nB = 4, nR = 10):
     '''
 
     state = text_to_state(text)
-
+    print state_to_text(state)
     w = KeyExpansion(key)
+    print "Key Expansion: ", state_to_text(w)
+    print "Initial State: ", state_to_text(state)
+    state = addRoundKey(state, w[40:])
+    print "After First addRoundKey: ", state_to_text(state)
 
-    addRoundKey(state, w[nR*nB: (nR + 1)*nB])
+    for i in range(10,0,-1):
+        state = inv_shift_rows(state)
+        print "Round i = %d" % (10 - i)
+        print "After shift_rows: ", state_to_text(state)
+        state = inv_subByte(state)
+        print "After subBytes: ", state_to_text(state)
+        state = addRoundKey(state, w[i*nB: (i+1)*nB])
+        print "After addRoundKey: ", state_to_text(state)
+        state = inv_mix_columns(state)
+        print "After inv_mix_columns: ", state_to_text(state)
 
-    for i in range(1,10,-1):
-        inv_shift_rows(state)
-        inv_subByte(state)
-        addRoundKey(state, w[i*nB: (i+1)*nB])
-        inv_mix_columns(state)
-
-    inv_shift_rows(state)
-    inv_subByte(state)
-    addRoundKey(state,w[0:nB])
+    state = inv_shift_rows(state)
+    print "Final shift_rows: ", state_to_text(state)
+    state = inv_subByte(state)
+    print "Final subBytes: ", state_to_text(state)
+    state = addRoundKey(state,w[0:nB])
+    print "Final State: ", state_to_text(state)
 
     return state_to_text(state)
 
@@ -314,11 +312,12 @@ Input = '3243f6a8885a308d313198a2e0370734'
 BKey = '2b7e151628aed2a6abf7158809cf4f3c'
 output = encrypt(Input,BKey)
 
-#cipher = encrypt(plaintext, KEY)
-#unencrypt = decrypt(cipher, KEY)
-#print "\nCipher is: ", cipher
-#print "Decrypted Cipher is: ", unencrypt
-#print "\n"
+cipher = encrypt(plaintext, KEY)
+unencrypt = decrypt(cipher, KEY)
+print "Plaintext is: %s" % plaintext
+print "\nCipher is: ", cipher
+print "Decrypted Cipher is: ", unencrypt
+print "\n"
 #key schedule = '000102030405060708090a0b0c0d0e0f'
 #state at start: '00102030405060708090a0b0c0d0e0f0'
 #after sub_bytes = '63cab7040953d051cd60e0e7ba70e18c'
