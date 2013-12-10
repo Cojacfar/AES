@@ -113,12 +113,12 @@ def inv_mix_a_column(s):
     x[3] = s[2] ^ xtime(s[3],2) ^ xtime(s[3]) ^ xtime(s[0]) ^ s[0] ^ xtime(s[1],2) ^ s[1] ^ XOR
     return x
 
-def addRoundKey(s,k):
+def addRoundKey(matrix,k):
     #Described in standard at 5.1.4, XOR each column with word from round key
     for i in range(4):
         for j in range(4):
-            s[i][j] ^= k[i][j]
-    return s 
+            matrix[i][j] ^= k[i][j]
+    return matrix
 
 def subByte(s):
     '''
@@ -129,6 +129,7 @@ def subByte(s):
         for j in range(4):
             s[i][j] = Sbox[s[i][j]]
     return s
+
 def inv_subByte(s):
     #Reverse of subByte
     for i in range(4):
@@ -162,11 +163,8 @@ def text_to_state(text):
     Where each a is 8 bits, and each column is a 4 byte word
     '''
     matrix = [ ]
-    text = int(text,16)
     for i in range(16):
-        byte = text >> (8 * (15 - i)) & 255 #Shifts the text over to the right in mulitples of 8 bits
-                                            #and ANDs with a bit-string of 8 1s(255) to return only the 8
-                                            #rightmost bits
+        byte = int(text[i*2:(i*2)+2],16) #Operates on two hex chars at a time
         if i % 4 == 0:
             matrix.append([byte])
         else:
@@ -180,8 +178,9 @@ def state_to_text(state):
     text = ''
     for column in state:
         for byte in column:
-            val = "%x" % byte
-            text = text + val
+            val1 = "%x" % (byte >> 4)
+            val2 = "%x" % (byte & 0xF )
+            text = text + val1 + val2
     return text
 
 def print_word(w):
@@ -232,7 +231,7 @@ def KeyExpansion(key,nK = 4):
 
 
     while i < (nR + 1) * nB:
-        temp = w[i-1][:] #That slicing operation is to create a new list. Embarassed still....
+        temp = w[i-1][:] #That slicing operation is to create a new list.
         if i % nK == 0:
             temp = subWord(rot(temp)) #Rotate bytes, then perform subByte, then xor with Rcon (but only the first byte)
             temp[0] = temp[0] ^ Rcon[i/nK]
@@ -269,33 +268,21 @@ def decrypt(text,key,nB = 4, nR = 10):
     This function takes the ciphertext and key and returns the plaintext
     '''
 
-    state = text_to_state(text)
-    print state_to_text(state)
-    w = KeyExpansion(key)
-    print "Key Expansion: ", state_to_text(w)
-    print "Initial State: ", state_to_text(state)
-    state = addRoundKey(state, w[40:])
-    print "After First addRoundKey: ", state_to_text(state)
+    cipher = text_to_state(text)
+    z = KeyExpansion(key)
+    cipher = addRoundKey(cipher, z[40:])
 
-    for i in range(10,0,-1):
-        state = inv_shift_rows(state)
-        print "Round i = %d" % (10 - i)
-        print "After shift_rows: ", state_to_text(state)
-        state = inv_subByte(state)
-        print "After subBytes: ", state_to_text(state)
-        state = addRoundKey(state, w[i*nB: (i+1)*nB])
-        print "After addRoundKey: ", state_to_text(state)
-        state = inv_mix_columns(state)
-        print "After inv_mix_columns: ", state_to_text(state)
+    for i in range(9,0,-1):
+        cipher = inv_shift_rows(cipher)
+        cipher = inv_subByte(cipher)
+        cipher = addRoundKey(cipher, z[i*nB: (i+1)*nB])
+        cipher = inv_mix_columns(cipher)
 
-    state = inv_shift_rows(state)
-    print "Final shift_rows: ", state_to_text(state)
-    state = inv_subByte(state)
-    print "Final subBytes: ", state_to_text(state)
-    state = addRoundKey(state,w[0:nB])
-    print "Final State: ", state_to_text(state)
+    cipher = inv_shift_rows(cipher)
+    cipher = inv_subByte(cipher)
+    cipher = addRoundKey(cipher,z[0:nB])
 
-    return state_to_text(state)
+    return state_to_text(cipher)
 
 
     
@@ -304,7 +291,7 @@ plaintext = '00112233445566778899aabbccddeeff'
 KEY = '000102030405060708090a0b0c0d0e0f'
 
 #---       Key Expansion Test String   ---
-KeyExp = "2b7e151628aed2a6abf7158809cf4f3c"
+KeyExp = '2b7e151628aed2a6abf7158809cf4f3c'
 result = encrypt(plaintext, KeyExp)
 
 #---       Appendix B - Cipher Example ---
