@@ -271,7 +271,7 @@ def decrypt(text,key,nB = 4, nR = 10):
     z = KeyExpansion(key)
     cipher = addRoundKey(cipher, z[40:])
 
-    for i in range(9,0,-1):
+    for i in range(9, 0, -1):
         cipher = inv_shift_rows(cipher)
         cipher = inv_subByte(cipher)
         cipher = addRoundKey(cipher, z[i*nB: (i+1)*nB])
@@ -279,11 +279,11 @@ def decrypt(text,key,nB = 4, nR = 10):
 
     cipher = inv_shift_rows(cipher)
     cipher = inv_subByte(cipher)
-    cipher = addRoundKey(cipher,z[0:nB])
+    cipher = addRoundKey(cipher, z[0:nB])
 
     return state_to_text(cipher)
 
-def counter_mode_encrypt(text,key,IV,NONCE):
+def counter_mode_encrypt(text, key, IV, NONCE):
     '''
     AES implemented in counter counter_mode and 128 bit key
 
@@ -297,15 +297,18 @@ def counter_mode_encrypt(text,key,IV,NONCE):
 
     '''
     BLK = NONCE + IV
-    count = '{0:{padding}x}'.format(1,padding = (31/4))
+    count = '{0:{padding}x}'.format(1, padding=(31/4))
     CTRBLK = NONCE + IV + count
 
     block = []
+    CT = []
     length = len(text)/32
-    for n in range(length):
+    for n in range(length-1):
         block.append(text[(n*32):(n+1) * 32])
-    final = len(block[length]) #If final length is 128-bit, will truncuate to actual value
-
+    final = len(block[length]) # If final length is 128-bit, will truncate to actual value
+    for i in range(length-1):
+        CT.append(block[i] ^ encrypt(CTRBLK, key))
+        CTRBLK[40:] = "%x" % (int(CTRBLK[40:],16) + 1)
 
 #TESTING
 plaintext = '00112233446666779988aabbccddeeff'
