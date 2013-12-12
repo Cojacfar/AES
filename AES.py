@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 
-
 Sbox = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
     0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -284,10 +283,32 @@ def decrypt(text,key,nB = 4, nR = 10):
 
     return state_to_text(cipher)
 
+def counter_mode_encrypt(text,key,IV,NONCE):
+    '''
+    AES implemented in counter counter_mode and 128 bit key
 
-    
+    Inputs are strings encoded in hex. Returns ASCII strings
+    Pseudo-Code:
+    CTRBLK = NONCE || IV || 1 (32-bit)
+    for i in range(n):
+        CT[i] = PT[i] XOR AES(CTRBLK)
+        CTRBLK += 1
+    CT[n] = PT[n] XOR TRUCN(AES(CTRBLK))
+
+    '''
+    BLK = NONCE + IV
+    count = '{0:{padding}x}'.format(1,padding = (31/4))
+    CTRBLK = NONCE + IV + count
+
+    block = []
+    length = len(text)/32
+    for n in range(length):
+        block.append(text[(n*32):(n+1) * 32])
+    final = len(block[length]) #If final length is 128-bit, will truncuate to actual value
+
+
 #TESTING
-plaintext = '00112233445566778899aabbccddeeff'
+plaintext = '00112233446666779988aabbccddeeff'
 KEY = '000102030405060708090a0b0c0d0e0f'
 
 #---       Key Expansion Test String   ---
