@@ -148,7 +148,7 @@ def subWord(w):
 
 def text_to_state(text):
     '''
-    This function takes a 128-bit key and translates it into 
+    This function takes a 128-bit block and translates it into
     a state matrix where each column is a 4-byte word
 
     Input is [a0,a1,a2,a3...]
@@ -160,6 +160,8 @@ def text_to_state(text):
       a[3,0] a[3,1] a[3,2] a[3,3] ]
 
     Where each a is 8 bits, and each column is a 4 byte word
+
+    The inputs should be hex presented as strings
     '''
     matrix = [ ]
     for i in range(16):
@@ -172,7 +174,8 @@ def text_to_state(text):
 
 def state_to_text(state):
     '''
-    Reverses text_to_state to output either ciphertext or plain text as a string
+    Reverses text_to_state to output either ciphertext or plain text as a
+    HEX string (ex: '5233ffaa')
     '''
     text = ''
     for column in state:
@@ -185,9 +188,9 @@ def state_to_text(state):
 def pad(n,pad):
     '''
     Input integers for number and the pad length.
-    Returns a hex number with leading 0s
+    Returns a hex number with leading 0s equal to the value of pad
     '''
-    return ''.join(['0' for num in pad]) + hex(n)[2:]
+    return ''.join(['0' for num in range(pad)]) + hex(n)[2:]
 
 def print_word(w):
     '''
@@ -196,7 +199,7 @@ def print_word(w):
     text = ''
     for each in w:
         text = text + "%x" % each
-    print "Current Word is: ",text
+    print "Current Word is: ", text
     return True
 
 
@@ -292,7 +295,7 @@ def decrypt(text,key,nB = 4, nR = 10):
 
 def counter_mode_encrypt(text, key, IV, NONCE):
     '''
-    AES implemented in counter counter_mode and 128 bit key
+    AES implemented in counter_mode with 128 bit block size
 
     Inputs are strings encoded in hex. Returns ASCII strings
     Pseudo-Code:
@@ -304,18 +307,28 @@ def counter_mode_encrypt(text, key, IV, NONCE):
 
     '''
     BLK = NONCE + IV
-    count = '{0:{padding}x}'.format(1, padding=(31/4))
+    count = pad(1, 7)
     CTRBLK = NONCE + IV + count
 
     block = []
     CT = []
     length = len(text)/32
     for n in range(length-1):
-        block.append(text[(n*32):(n+1) * 32])
-    final = len(block[length]) # If final length is 128-bit, will truncate to actual value
+        block.append(int(text[(n*32):(n+1) * 32],16))
+    final = len(block[length])  # If final length is 128-bit, will truncate to actual value
     for i in range(length-1):
-        CT.append(block[i] ^ encrypt(CTRBLK, key))
-        CTRBLK[40:] = pad(i,length - i/16)
+        CT.append(hex(block[i] ^ int(encrypt(CTRBLK, key),16))[2:])
+        CTRBLK[40:] = pad(i, length - i/16)
+    CT.append(hex(block[length] ^ encrypt(CTRBLK, key)[:final])[2:])
+    return ''.join(CT)
+
+def counter_mode_decrypt(text, key, IV, NONCE):
+    '''
+    AES implemented in counter_mode with 128 bit block size.
+
+    '''
+    BLK = NONCE + IV
+
 
 #TESTING
 plaintext = '00112233446666779988aabbccddeeff'
