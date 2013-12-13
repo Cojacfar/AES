@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from math import ceil
 
 Sbox = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -313,9 +314,10 @@ def counter_mode_encrypt(text, key, IV, NONCE):
 
     block = []
     CT = []
-    length = len(text)/32
+    length = int(ceil(len(text)/float(32)))
     for n in range(length):
         block.append(text[(n*32):(n+1) * 32])
+    print "Blocks are: ",block
     final = len(block[length-1])  # If final length is not 128-bit, will truncate to actual value
     for i in range(length-1):
         CT.append('%x' % ((int(block[i], 16) ^ int(encrypt(CTRBLK, key), 16))))
@@ -351,6 +353,7 @@ print "\n"
 #after mix columns = '5f72641557f5bc92f7be3b291db9f91a'
 
 #--- RFC 3686 Test Vectors (Counter Block Mode) ---
+'''
 Key = 'ae6852f8121067cc4bf7a5765577f39e'
 IV = '0000000000000000'
 Nonce = '00000030'
@@ -369,3 +372,12 @@ P2 = '000102030405060708090A0B0C0D0E0F101112131415161718191a1b1c1d1e1f'
 cipher = counter_mode_encrypt(P2,K2,I2,N2)
 print "Ciphertext 2 from counter-block mode: ",cipher
 print "Plaintext from CBM: ", counter_mode_encrypt(cipher,K2,I2,N2)
+'''
+
+K3 = '7691BE035E5020A8AC6E618529F9A0DC'
+I3 = '27777f3f4a1786f0'
+N3 = '00e0017b'
+P3 = '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223'
+C3 = counter_mode_encrypt(P3,K3,I3,N3)
+print "Ciphertext 3 from CBM: ",C3
+print "Plaintext 3 is: ", counter_mode_encrypt(C3,K3,I3,N3)
