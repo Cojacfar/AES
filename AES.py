@@ -182,6 +182,13 @@ def state_to_text(state):
             text = text + val1 + val2
     return text
 
+def pad(n,pad):
+    '''
+    Input integers for number and the pad length.
+    Returns a hex number with leading 0s
+    '''
+    return ''.join(['0' for num in pad]) + hex(n)[2:]
+
 def print_word(w):
     '''
     For printing for debugging purposes
@@ -308,7 +315,7 @@ def counter_mode_encrypt(text, key, IV, NONCE):
     final = len(block[length]) # If final length is 128-bit, will truncate to actual value
     for i in range(length-1):
         CT.append(block[i] ^ encrypt(CTRBLK, key))
-        CTRBLK[40:] = "%x" % (int(CTRBLK[40:],16) + 1)
+        CTRBLK[40:] = pad(i,length - i/16)
 
 #TESTING
 plaintext = '00112233446666779988aabbccddeeff'
