@@ -296,6 +296,7 @@ def decrypt(text,key,nB = 4, nR = 10):
 def counter_mode_encrypt(text, key, IV, NONCE):
     '''
     AES implemented in counter_mode with 128 bit block size
+    Running this on ciphertext produces plaintext, and vice versa
 
     Inputs are strings encoded in hex. Returns ASCII strings
     Pseudo-Code:
@@ -313,21 +314,15 @@ def counter_mode_encrypt(text, key, IV, NONCE):
     block = []
     CT = []
     length = len(text)/32
-    for n in range(length-1):
-        block.append(int(text[(n*32):(n+1) * 32],16))
-    final = len(block[length])  # If final length is 128-bit, will truncate to actual value
+    for n in range(length):
+        block.append(text[(n*32):(n+1) * 32])
+    final = len(block[length-1])  # If final length is not 128-bit, will truncate to actual value
     for i in range(length-1):
-        CT.append(hex(block[i] ^ int(encrypt(CTRBLK, key),16))[2:])
-        CTRBLK[40:] = pad(i, length - i/16)
-    CT.append(hex(block[length] ^ encrypt(CTRBLK, key)[:final])[2:])
+        CT.append('%x' % ((int(block[i], 16) ^ int(encrypt(CTRBLK, key), 16))))
+        CTRBLK = CTRBLK[:40] + pad(i, length - i/16)
+    CT.append(('%x' % (int(block[length-1],16) ^ (int(encrypt(CTRBLK, key)[:final],16)))))
     return ''.join(CT)
 
-def counter_mode_decrypt(text, key, IV, NONCE):
-    '''
-    AES implemented in counter_mode with 128 bit block size.
-
-    '''
-    BLK = NONCE + IV
 
 
 #TESTING
@@ -354,3 +349,23 @@ print "\n"
 #after sub_bytes = '63cab7040953d051cd60e0e7ba70e18c'
 #after shift rows = '6353e08c0960e104cd70b751bacad0e7'
 #after mix columns = '5f72641557f5bc92f7be3b291db9f91a'
+
+#--- RFC 3686 Test Vectors (Counter Block Mode) ---
+Key = 'ae6852f8121067cc4bf7a5765577f39e'
+IV = '0000000000000000'
+Nonce = '00000030'
+string = 'Single block msg'
+plaintext = '53696e676c6520626c6f636b206d7367'
+
+ciphertext = counter_mode_encrypt(plaintext,Key,IV,Nonce)
+plaint  = counter_mode_encrypt(ciphertext,Key,IV,Nonce)
+print "Ciphertext from counter-block mode: ", ciphertext
+print "Decrypts to: ", plaint
+
+K2 = '7e24067817fae0d743d6ce1f32539163'
+I2 = 'c0543b59da48d90b'
+N2 = '006cb6db'
+P2 = '000102030405060708090A0B0C0D0E0F101112131415161718191a1b1c1d1e1f'
+cipher = counter_mode_encrypt(P2,K2,I2,N2)
+print "Ciphertext 2 from counter-block mode: ",cipher
+print "Plaintext from CBM: ", counter_mode_encrypt(cipher,K2,I2,N2)
