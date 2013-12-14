@@ -63,6 +63,7 @@ def inv_shift_rows(s):
 def xtime(a,n=1):
     '''
     Described in 4.2.1 of NIST AES spec.
+
     Equal to multiplying by one 'x', so perform xtime multiple times to get values other than {02}
     such as {04}
     '''
@@ -225,6 +226,7 @@ def print_matrix(s):
 def KeyExpansion(key,nK = 4):
     '''
     Key expansion from NIST FIPS-197 5.2
+
     In the original pseudo-code, the key is moved to w, which consists of
     4-byte words. However, in Python binary is a bit of a bear (at least for me)
     so I will simply use the same set-up as the state array for the key. 
@@ -297,8 +299,8 @@ def decrypt(text,key,nB = 4, nR = 10):
 def counter_mode_encrypt(text, key, IV, NONCE):
     '''
     AES implemented in counter_mode with 128 bit block size
-    Running this on ciphertext produces plaintext, and vice versa
 
+    Running this on ciphertext produces plaintext, and vice versa
     Inputs are strings encoded in hex. Returns ASCII strings
     Pseudo-Code:
     CTRBLK = NONCE || IV || 1 (32-bit)
@@ -353,7 +355,6 @@ print "\n"
 #after mix columns = '5f72641557f5bc92f7be3b291db9f91a'
 
 #--- RFC 3686 Test Vectors (Counter Block Mode) ---
-'''
 Key = 'ae6852f8121067cc4bf7a5765577f39e'
 IV = '0000000000000000'
 Nonce = '00000030'
@@ -372,7 +373,6 @@ P2 = '000102030405060708090A0B0C0D0E0F101112131415161718191a1b1c1d1e1f'
 cipher = counter_mode_encrypt(P2,K2,I2,N2)
 print "Ciphertext 2 from counter-block mode: ",cipher
 print "Plaintext from CBM: ", counter_mode_encrypt(cipher,K2,I2,N2)
-'''
 
 K3 = '7691BE035E5020A8AC6E618529F9A0DC'
 I3 = '27777f3f4a1786f0'
