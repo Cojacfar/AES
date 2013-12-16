@@ -296,7 +296,7 @@ def decrypt(text,key,nB = 4, nR = 10):
 
     return state_to_text(cipher)
 
-def counter_mode_encrypt(text, key, IV, NONCE):
+def counter_mode(text, key, IV, NONCE):
     '''
     AES implemented in counter_mode with 128 bit block size
 
