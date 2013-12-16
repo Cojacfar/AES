@@ -167,7 +167,7 @@ def text_to_state(text):
     '''
     matrix = [ ]
     for i in range(16):
-        byte = int(text[i*2:(i*2)+2], 16) #Operates on two hex chars at a time
+        byte = int(text[i*2:(i*2)+2],16) #Operates on two hex chars at a time
         if i % 4 == 0:
             matrix.append([byte])
         else:
@@ -256,7 +256,7 @@ def KeyExpansion(key,nK = 4):
 
 def encrypt(text,key,nB = 4, nR = 10):
     '''
-    This function takes the hex string and key
+    This function takes the plaintext and key
     and encrypts
     '''
     state = text_to_state(text)
@@ -301,7 +301,7 @@ def counter_mode(text, key, IV, NONCE):
     AES implemented in counter_mode with 128 bit block size
 
     Running this on ciphertext produces plaintext, and vice versa
-    Inputs are strings encoded in hex. Returns hex strings
+    Inputs are strings encoded in hex. Returns ASCII strings
     Pseudo-Code:
     CTRBLK = NONCE || IV || 1 (32-bit)
     for i in range(n):
@@ -325,6 +325,4 @@ def counter_mode(text, key, IV, NONCE):
         CTRBLK = CTRBLK[:40] + pad(i, length - i/16)
     CT.append(('%x' % (int(block[length-1],16) ^ (int(encrypt(CTRBLK, key)[:final],16)))))
     return ''.join(CT)
-
-
 
